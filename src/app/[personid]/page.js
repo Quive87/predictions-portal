@@ -32,8 +32,7 @@ export default function PersonPredictionPage({ params }) {
   
   const [formData, setFormData] = useState({
     winner: '',
-    score1: '',
-    score2: ''
+    score: ''
   });
   
   const [status, setStatus] = useState('idle');
@@ -74,6 +73,16 @@ export default function PersonPredictionPage({ params }) {
     setStatus('submitting')
 
     try {
+      const [winScore, loseScore] = formData.score.split('-').map(Number);
+      let s1 = 0, s2 = 0;
+      if (formData.winner === activeMatch.team1) {
+        s1 = winScore;
+        s2 = loseScore;
+      } else {
+        s1 = loseScore;
+        s2 = winScore;
+      }
+
       const res = await fetch('/api/preds', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -84,8 +93,8 @@ export default function PersonPredictionPage({ params }) {
           team1: activeMatch.team1,
           team2: activeMatch.team2,
           winner: formData.winner,
-          score1: parseInt(formData.score1) || 0,
-          score2: parseInt(formData.score2) || 0
+          score1: s1,
+          score2: s2
         })
       });
 
@@ -153,44 +162,32 @@ export default function PersonPredictionPage({ params }) {
 
             <div className="space-y-3">
               <label className="text-xs font-semibold uppercase tracking-widest text-[#888]">Predicted Score</label>
-              <div className="flex items-center gap-4">
-                <div className="flex-1 space-y-2">
-                  <span className="block text-xs text-[#888] truncate">{activeMatch.team1}</span>
-                  <input 
-                    required
-                    type="number" 
-                    min="0"
-                    name="score1"
-                    value={formData.score1}
-                    onChange={handleChange}
-                    placeholder="0" 
-                    className="w-full px-3 py-2 bg-black border border-[#333] rounded-md text-white placeholder-[#444] focus:outline-none focus:border-white transition-colors"
-                  />
-                </div>
-                
-                <span className="text-[#666] font-light text-xl mt-6">-</span>
-
-                <div className="flex-1 space-y-2">
-                  <span className="block text-xs text-[#888] truncate">{activeMatch.team2}</span>
-                  <input 
-                    required
-                    type="number" 
-                    min="0"
-                    name="score2"
-                    value={formData.score2}
-                    onChange={handleChange}
-                    placeholder="0" 
-                    className="w-full px-3 py-2 bg-black border border-[#333] rounded-md text-white placeholder-[#444] focus:outline-none focus:border-white transition-colors"
-                  />
-                </div>
+              <div className="flex flex-wrap gap-2">
+                {Array.from({ length: Math.ceil((activeMatch.bestOf || 3) / 2) }).map((_, loserScore) => {
+                  const wins = Math.ceil((activeMatch.bestOf || 3) / 2);
+                  const score = `${wins}-${loserScore}`;
+                  return (
+                    <button
+                      key={score}
+                      type="button"
+                      onClick={() => setFormData({ ...formData, score })}
+                      className={`flex-1 py-2 px-1 rounded-md border text-sm transition-colors min-w-[60px]
+                        ${formData.score === score 
+                          ? 'bg-white border-white text-black font-semibold' 
+                          : 'bg-black border-[#333] text-[#888] hover:border-[#666] hover:text-white'}`}
+                    >
+                      {score}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
             <button 
               type="submit" 
-              disabled={status === 'submitting' || status === 'success' || !formData.winner}
+              disabled={status === 'submitting' || status === 'success' || !formData.winner || !formData.score}
               className={`w-full py-2.5 rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2
-                ${status === 'submitting' || status === 'success' || !formData.winner
+                ${status === 'submitting' || status === 'success' || !formData.winner || !formData.score
                   ? 'bg-[#333] text-[#888] cursor-not-allowed'
                   : 'bg-white text-black hover:bg-[#eaeaea]'
                 }`}

@@ -17,7 +17,7 @@ export async function GET(request) {
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { bountyId, matchId, team1, team2 } = body;
+    const { bountyId, matchId, team1, team2, bestOf } = body;
 
     if (!bountyId || !matchId) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -28,6 +28,7 @@ export async function POST(request) {
       matchId,
       team1: team1 || 'Team A',
       team2: team2 || 'Team B',
+      bestOf: bestOf || 3,
       updatedAt: new Date().toISOString()
     };
 
