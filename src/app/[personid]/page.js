@@ -2,24 +2,14 @@
 
 import { useState, useEffect, use } from 'react'
 
-// Map of IDs to Crew Names
 const CREW_MAP = {
-  "1700": "Caster 1",
-  "1701": "Caster 2",
-  "1702": "Analyst 1",
-  "1703": "Analyst 2",
-  "1704": "Host",
-  "1705": "Crew 6",
-  "1706": "Crew 7",
-  "1707": "Crew 8",
-  "1708": "Crew 9",
-  "1709": "Crew 10",
-  "1710": "Crew 11",
-  "1711": "Crew 12",
-  "1712": "Crew 13",
-  "1713": "Crew 14",
-  "1714": "Crew 15",
-  "1715": "Crew 16"
+  "1700": "AJ",
+  "1701": "Kyorai",
+  "1702": "Saket",
+  "1703": "Nimar",
+  "1704": "Penguin",
+  "1705": "Aditya",
+  "1706": "Caster 7"
 };
 
 export default function PersonPredictionPage({ params }) {
@@ -36,6 +26,10 @@ export default function PersonPredictionPage({ params }) {
   });
   
   const [status, setStatus] = useState('idle');
+
+  useEffect(() => {
+    document.title = `${crewName} | Predictions`;
+  }, [crewName]);
 
   useEffect(() => {
     const fetchActiveMatch = async () => {
