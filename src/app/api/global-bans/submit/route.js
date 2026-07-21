@@ -41,7 +41,13 @@ export async function POST(request) {
     // Save updated phase data
     await kv.set(`global_bans_${matchId}`, phaseData);
 
-    return NextResponse.json({ success: true, team, bans });
+    return NextResponse.json({ 
+      success: true, 
+      team, 
+      bans,
+      bansA: phaseData.bansA,
+      bansB: phaseData.bansB 
+    });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: 'Failed to submit global bans' }, { status: 500 });

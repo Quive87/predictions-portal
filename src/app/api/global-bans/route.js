@@ -18,14 +18,24 @@ export async function GET(request) {
       if (!phaseData) {
          return NextResponse.json({ error: 'No active ban phase found' }, { status: 404 });
       }
+      let returnBansA = phaseData.bansA || [];
+      let returnBansB = phaseData.bansB || [];
+
+      // Hide opponent's bans if this team hasn't banned yet
+      if (tokenData.team === 'A' && (!phaseData.bansA || phaseData.bansA.length === 0)) {
+        returnBansB = [];
+      } else if (tokenData.team === 'B' && (!phaseData.bansB || phaseData.bansB.length === 0)) {
+        returnBansA = [];
+      }
+
       return NextResponse.json({
          matchId: phaseData.matchId,
          team1Name: phaseData.team1Name,
          team2Name: phaseData.team2Name,
          isOpen: phaseData.isOpen,
          myTeam: tokenData.team,
-         bansA: phaseData.bansA,
-         bansB: phaseData.bansB
+         bansA: returnBansA,
+         bansB: returnBansB
       });
     }
 

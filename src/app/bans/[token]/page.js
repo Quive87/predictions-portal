@@ -113,8 +113,16 @@ export default function BansPage() {
         throw new Error(errData.error || 'Failed to submit bans');
       }
 
+      const resData = await res.json();
+
       setSuccess(true);
       setIsLocked(true);
+      setData(prev => ({
+        ...prev,
+        bansA: resData.bansA,
+        bansB: resData.bansB
+      }));
+      
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
       setError(err.message);
