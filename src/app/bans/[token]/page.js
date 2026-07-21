@@ -47,6 +47,7 @@ export default function BansPage() {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [search, setSearch] = useState('');
+  const [isLocked, setIsLocked] = useState(false);
 
   useEffect(() => {
     document.title = "Global Bans Entry";
@@ -66,6 +67,7 @@ export default function BansPage() {
         const myBans = phaseData.myTeam === 'A' ? phaseData.bansA : phaseData.bansB;
         if (myBans && myBans.length > 0) {
           setSelectedBans(myBans.filter(Boolean));
+          setIsLocked(true);
         }
       } catch (err) {
         setError(err.message);
@@ -78,6 +80,7 @@ export default function BansPage() {
   }, [token]);
 
   const toggleBan = (id) => {
+    if (isLocked) return;
     if (selectedBans.includes(id)) {
       setSelectedBans(selectedBans.filter(b => b !== id));
     } else {
@@ -111,6 +114,7 @@ export default function BansPage() {
       }
 
       setSuccess(true);
+      setIsLocked(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
       setError(err.message);
@@ -158,22 +162,49 @@ export default function BansPage() {
           </div>
           
           {data.isOpen && (
-            <div className="flex flex-col items-start md:items-end gap-2">
-              <div className="text-[10px] uppercase text-[#666] font-semibold tracking-wider">Selected Bans</div>
-              <div className="flex gap-2">
-                {[0, 1].map(index => {
-                  const banId = selectedBans[index];
-                  const brawlerName = banId ? BRAWLERS[banId] : '';
-                  return (
-                    <div key={index} className={`w-14 h-14 md:w-16 md:h-16 rounded overflow-hidden flex items-center justify-center border-2 transition-colors ${banId ? 'border-red-500 bg-[#222]' : 'border-[#333] border-dashed bg-black'}`}>
-                      {banId ? (
-                        <img src={`/brawlers/${banId}.png`} alt={brawlerName} className="w-full h-full object-cover grayscale brightness-50 hover:grayscale-0 hover:brightness-100 transition-all cursor-pointer" onClick={() => toggleBan(banId)} title={brawlerName} />
-                      ) : (
-                        <span className="text-[#444] text-xl font-black">?</span>
-                      )}
-                    </div>
-                  );
-                })}
+            <div className="flex flex-col items-start md:items-end gap-2 mt-4 md:mt-0">
+              <div className="flex gap-6">
+                {/* Team A Bans */}
+                <div className="flex flex-col items-center gap-2">
+                  <div className="text-[10px] uppercase text-blue-500 font-bold tracking-wider">{data.team1Name}</div>
+                  <div className="flex gap-2">
+                    {[0, 1].map(index => {
+                      const isMyTeam = data.myTeam === 'A';
+                      const banId = isMyTeam ? selectedBans[index] : (data.bansA ? data.bansA[index] : null);
+                      const brawlerName = banId ? BRAWLERS[banId] : '';
+                      return (
+                        <div key={`a-${index}`} className={`w-12 h-12 md:w-14 md:h-14 rounded overflow-hidden flex items-center justify-center border-2 transition-colors ${banId ? 'border-blue-500 bg-[#222]' : 'border-[#333] border-dashed bg-black'}`}>
+                          {banId ? (
+                            <img src={`/brawlers/${banId}.png`} alt={brawlerName} className={`w-full h-full object-cover ${isMyTeam && !isLocked ? 'cursor-pointer hover:brightness-125' : ''}`} onClick={() => isMyTeam && toggleBan(banId)} title={brawlerName} />
+                          ) : (
+                            <span className="text-[#444] text-xl font-black">?</span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Team B Bans */}
+                <div className="flex flex-col items-center gap-2">
+                  <div className="text-[10px] uppercase text-red-500 font-bold tracking-wider">{data.team2Name}</div>
+                  <div className="flex gap-2">
+                    {[0, 1].map(index => {
+                      const isMyTeam = data.myTeam === 'B';
+                      const banId = isMyTeam ? selectedBans[index] : (data.bansB ? data.bansB[index] : null);
+                      const brawlerName = banId ? BRAWLERS[banId] : '';
+                      return (
+                        <div key={`b-${index}`} className={`w-12 h-12 md:w-14 md:h-14 rounded overflow-hidden flex items-center justify-center border-2 transition-colors ${banId ? 'border-red-500 bg-[#222]' : 'border-[#333] border-dashed bg-black'}`}>
+                          {banId ? (
+                            <img src={`/brawlers/${banId}.png`} alt={brawlerName} className={`w-full h-full object-cover ${isMyTeam && !isLocked ? 'cursor-pointer hover:brightness-125' : ''}`} onClick={() => isMyTeam && toggleBan(banId)} title={brawlerName} />
+                          ) : (
+                            <span className="text-[#444] text-xl font-black">?</span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -194,13 +225,17 @@ export default function BansPage() {
                 onChange={e => setSearch(e.target.value)}
                 className="w-full max-w-sm bg-[#111] border border-[#333] text-white text-sm rounded-md p-3 focus:outline-none focus:border-white transition-colors"
               />
-              <button
-                onClick={handleSubmit}
-                disabled={submitting || selectedBans.length === 0}
-                className="py-3 px-6 rounded-md border border-[#333] bg-white text-black font-bold text-sm hover:bg-gray-200 transition-colors uppercase tracking-wider disabled:opacity-50 whitespace-nowrap"
-              >
-                {submitting ? 'Saving...' : 'Submit Bans'}
-              </button>
+              {isLocked ? (
+                <div className="text-red-500 font-bold uppercase text-sm border-2 border-red-900 bg-red-950/20 px-4 py-2 rounded-md">Bans Locked</div>
+              ) : (
+                <button
+                  onClick={handleSubmit}
+                  disabled={submitting || selectedBans.length === 0}
+                  className="py-3 px-6 rounded-md border border-[#333] bg-white text-black font-bold text-sm hover:bg-gray-200 transition-colors uppercase tracking-wider disabled:opacity-50 whitespace-nowrap"
+                >
+                  {submitting ? 'Saving...' : 'Submit Bans'}
+                </button>
+              )}
             </div>
 
             {error && <p className="text-xs text-red-500 font-bold">{error}</p>}

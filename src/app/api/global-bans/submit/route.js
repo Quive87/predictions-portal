@@ -26,8 +26,14 @@ export async function POST(request) {
 
     // Update bans for the specific team
     if (team === 'A') {
+      if (phaseData.bansA && phaseData.bansA.length > 0) {
+        return NextResponse.json({ error: 'Team A has already submitted their bans and cannot change them.' }, { status: 403 });
+      }
       phaseData.bansA = bans;
     } else {
+      if (phaseData.bansB && phaseData.bansB.length > 0) {
+        return NextResponse.json({ error: 'Team B has already submitted their bans and cannot change them.' }, { status: 403 });
+      }
       phaseData.bansB = bans;
     }
     phaseData.updatedAt = new Date().toISOString();
