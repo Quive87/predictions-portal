@@ -33,7 +33,6 @@ const BRAWLERS = {
   "16000106": "bolt"
 };
 
-// Sort brawlers alphabetically for the dropdown
 const SORTED_BRAWLERS = Object.entries(BRAWLERS).sort((a, b) => a[1].localeCompare(b[1]));
 
 export default function BansPage() {
@@ -44,10 +43,10 @@ export default function BansPage() {
   const [error, setError] = useState('');
   const [data, setData] = useState(null);
   
-  const [ban1, setBan1] = useState('');
-  const [ban2, setBan2] = useState('');
+  const [selectedBans, setSelectedBans] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     document.title = "Global Bans Entry";
@@ -66,8 +65,7 @@ export default function BansPage() {
         // Pre-fill existing bans if any
         const myBans = phaseData.myTeam === 'A' ? phaseData.bansA : phaseData.bansB;
         if (myBans && myBans.length > 0) {
-          setBan1(myBans[0] || '');
-          setBan2(myBans[1] || '');
+          setSelectedBans(myBans.filter(Boolean));
         }
       } catch (err) {
         setError(err.message);
@@ -79,6 +77,19 @@ export default function BansPage() {
     fetchTokenInfo();
   }, [token]);
 
+  const toggleBan = (id) => {
+    if (selectedBans.includes(id)) {
+      setSelectedBans(selectedBans.filter(b => b !== id));
+    } else {
+      if (selectedBans.length < 2) {
+        setSelectedBans([...selectedBans, id]);
+      } else {
+        // If they click a 3rd, replace the second one
+        setSelectedBans([selectedBans[0], id]);
+      }
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!data?.isOpen) return;
@@ -88,14 +99,10 @@ export default function BansPage() {
     setSuccess(false);
 
     try {
-      const bans = [];
-      if (ban1) bans.push(ban1);
-      if (ban2 && ban2 !== ban1) bans.push(ban2); // prevent duplicate IDs in the array just in case
-
       const res = await fetch('/api/global-bans/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, bans })
+        body: JSON.stringify({ token, bans: selectedBans })
       });
 
       if (!res.ok) {
@@ -133,77 +140,124 @@ export default function BansPage() {
   const teamName = data.myTeam === 'A' ? data.team1Name : data.team2Name;
   const opponentName = data.myTeam === 'A' ? data.team2Name : data.team1Name;
 
+  const filteredBrawlers = SORTED_BRAWLERS.filter(([_, name]) => name.includes(search.toLowerCase()));
+
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-4 font-sans selection:bg-white selection:text-black">
-      <div className="w-full max-w-md p-8 border border-[#333] rounded-md bg-[#0a0a0a]">
+    <div className="min-h-screen bg-black text-white flex flex-col items-center justify-start p-4 md:p-8 font-sans selection:bg-white selection:text-black">
+      <div className="w-full max-w-4xl p-6 border border-[#333] rounded-xl bg-[#0a0a0a] shadow-2xl">
         
-        <div className="mb-8 border-b border-[#333] pb-4">
-          <span className="text-[10px] uppercase text-[#666] font-semibold tracking-widest block mb-1">
-            Global Ban Phase
-          </span>
-          <h1 className="text-xl font-semibold tracking-tight uppercase text-blue-400">
-            {teamName}
-          </h1>
-          <p className="text-[#888] text-xs mt-1">vs {opponentName}</p>
+        <div className="mb-6 border-b border-[#333] pb-4 flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div>
+            <span className="text-[10px] uppercase text-[#666] font-semibold tracking-widest block mb-1">
+              Global Ban Phase
+            </span>
+            <h1 className="text-2xl font-semibold tracking-tight uppercase text-blue-400">
+              {teamName}
+            </h1>
+            <p className="text-[#888] text-sm mt-1">vs {opponentName}</p>
+          </div>
+          
+          {data.isOpen && (
+            <div className="flex flex-col items-start md:items-end gap-2">
+              <div className="text-[10px] uppercase text-[#666] font-semibold tracking-wider">Selected Bans</div>
+              <div className="flex gap-2">
+                {[0, 1].map(index => {
+                  const banId = selectedBans[index];
+                  const brawlerName = banId ? BRAWLERS[banId] : '';
+                  return (
+                    <div key={index} className={`w-14 h-14 md:w-16 md:h-16 rounded overflow-hidden flex items-center justify-center border-2 transition-colors ${banId ? 'border-red-500 bg-[#222]' : 'border-[#333] border-dashed bg-black'}`}>
+                      {banId ? (
+                        <img src={`/brawlers/${banId}.png`} alt={brawlerName} className="w-full h-full object-cover grayscale brightness-50 hover:grayscale-0 hover:brightness-100 transition-all cursor-pointer" onClick={() => toggleBan(banId)} title={brawlerName} />
+                      ) : (
+                        <span className="text-[#444] text-xl font-black">?</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
         {!data.isOpen ? (
-          <div className="p-6 border border-[#333] bg-[#111] rounded text-center">
-            <p className="text-sm text-[#888] font-medium uppercase tracking-wider">Phase Closed</p>
-            <p className="text-xs text-[#555] mt-1">The global ban phase for this match has ended.</p>
+          <div className="p-8 border border-[#333] bg-[#111] rounded-lg text-center my-12">
+            <p className="text-lg text-[#888] font-bold uppercase tracking-wider">Phase Closed</p>
+            <p className="text-sm text-[#555] mt-2">The global ban phase for this match has ended.</p>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-4">
-              <div>
-                <label className="text-[10px] uppercase text-[#666] font-semibold tracking-wider block mb-2">Ban 1</label>
-                <select 
-                  value={ban1} 
-                  onChange={(e) => setBan1(e.target.value)}
-                  className="w-full bg-[#111] border border-[#333] text-white text-sm rounded-md p-3 focus:outline-none focus:border-white capitalize appearance-none"
-                >
-                  <option value="">-- No Ban --</option>
-                  {SORTED_BRAWLERS.map(([id, name]) => (
-                    <option key={`ban1-${id}`} value={id}>{name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="text-[10px] uppercase text-[#666] font-semibold tracking-wider block mb-2">Ban 2</label>
-                <select 
-                  value={ban2} 
-                  onChange={(e) => setBan2(e.target.value)}
-                  className="w-full bg-[#111] border border-[#333] text-white text-sm rounded-md p-3 focus:outline-none focus:border-white capitalize appearance-none"
-                >
-                  <option value="">-- No Ban --</option>
-                  {SORTED_BRAWLERS.map(([id, name]) => (
-                    <option key={`ban2-${id}`} value={id}>{name}</option>
-                  ))}
-                </select>
-              </div>
+          <div className="space-y-6">
+            <div className="flex justify-between items-center gap-4">
+              <input
+                type="text"
+                placeholder="Search Brawler..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="w-full max-w-sm bg-[#111] border border-[#333] text-white text-sm rounded-md p-3 focus:outline-none focus:border-white transition-colors"
+              />
+              <button
+                onClick={handleSubmit}
+                disabled={submitting || selectedBans.length === 0}
+                className="py-3 px-6 rounded-md border border-[#333] bg-white text-black font-bold text-sm hover:bg-gray-200 transition-colors uppercase tracking-wider disabled:opacity-50 whitespace-nowrap"
+              >
+                {submitting ? 'Saving...' : 'Submit Bans'}
+              </button>
             </div>
 
-            {error && (
-               <p className="text-xs text-red-500 text-center font-bold">{error}</p>
-            )}
-            
-            {success && (
-               <div className="p-3 border border-green-900 bg-green-950/30 text-green-500 text-xs text-center font-bold uppercase rounded">
-                 Bans Saved Successfully
-               </div>
-            )}
+            {error && <p className="text-xs text-red-500 font-bold">{error}</p>}
+            {success && <div className="p-3 border border-green-900 bg-green-950/30 text-green-500 text-xs font-bold uppercase rounded text-center">Bans Saved Successfully!</div>}
 
-            <button
-              type="submit"
-              disabled={submitting}
-              className="w-full py-3 px-4 rounded-md border border-[#333] bg-white text-black font-bold text-sm hover:bg-gray-200 transition-colors uppercase tracking-wider disabled:opacity-50"
-            >
-              {submitting ? 'Saving...' : 'Submit Bans'}
-            </button>
-          </form>
+            <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-2 md:gap-3 max-h-[60vh] overflow-y-auto pr-2 pb-4 styled-scrollbar">
+              {filteredBrawlers.map(([id, name]) => {
+                const isSelected = selectedBans.includes(id);
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => toggleBan(id)}
+                    className={`relative aspect-square rounded-md overflow-hidden border-2 transition-all duration-200 ${
+                      isSelected 
+                        ? 'border-red-500 scale-95 shadow-[0_0_15px_rgba(239,68,68,0.5)] z-10' 
+                        : 'border-[#333] hover:border-gray-500 hover:scale-105'
+                    }`}
+                  >
+                    <img 
+                      src={`/brawlers/${id}.png`} 
+                      alt={name} 
+                      className={`w-full h-full object-cover transition-all ${isSelected ? 'grayscale brightness-50' : ''}`}
+                      loading="lazy"
+                    />
+                    {isSelected && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-white font-black text-2xl drop-shadow-[0_2px_2px_rgba(0,0,0,1)] select-none pointer-events-none">X</span>
+                      </div>
+                    )}
+                    <div className="absolute bottom-0 left-0 right-0 bg-black/80 p-1">
+                      <p className="text-[9px] font-bold uppercase text-center truncate">{name}</p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         )}
       </div>
+
+      <style jsx global>{`
+        .styled-scrollbar::-webkit-scrollbar {
+          width: 8px;
+        }
+        .styled-scrollbar::-webkit-scrollbar-track {
+          background: #111; 
+          border-radius: 4px;
+        }
+        .styled-scrollbar::-webkit-scrollbar-thumb {
+          background: #333; 
+          border-radius: 4px;
+        }
+        .styled-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #555; 
+        }
+      `}</style>
     </div>
   );
 }
