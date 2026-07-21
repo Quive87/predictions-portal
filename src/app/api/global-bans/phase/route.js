@@ -11,11 +11,23 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Missing matchId' }, { status: 400 });
     }
 
+    // Check if phase data already exists for this match
+    let phaseData = await kv.get(`global_bans_${matchId}`);
+    
+    if (phaseData) {
+      // Re-open phase but keep the same tokens and bans
+      phaseData.isOpen = true;
+      phaseData.updatedAt = new Date().toISOString();
+      await kv.set(`global_bans_${matchId}`, phaseData);
+      
+      return NextResponse.json({ success: true, phaseData });
+    }
+
     // Generate unique unguessable tokens for each team
     const tokenA = crypto.randomBytes(8).toString('hex');
     const tokenB = crypto.randomBytes(8).toString('hex');
 
-    const phaseData = {
+    phaseData = {
       matchId,
       team1Name: team1Name || 'Team A',
       team2Name: team2Name || 'Team B',
