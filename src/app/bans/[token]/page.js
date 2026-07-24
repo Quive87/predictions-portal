@@ -77,6 +77,13 @@ export default function BansPage() {
     };
 
     fetchTokenInfo();
+
+    // Set up auto-polling if the phase is still active and bans are not locked
+    const interval = setInterval(() => {
+      fetchTokenInfo();
+    }, 3000);
+
+    return () => clearInterval(interval);
   }, [token]);
 
   const toggleBan = (id) => {

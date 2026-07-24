@@ -9,7 +9,7 @@ const CREW_MAP = {
   "1703": "Nimar",
   "1704": "Penguin",
   "1705": "Aditya",
-  "1706": "Caster 7"
+  "1706": "Sergeant"
 };
 
 export default function PersonPredictionPage({ params }) {
